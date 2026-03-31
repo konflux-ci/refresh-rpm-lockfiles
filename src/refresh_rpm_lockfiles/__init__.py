@@ -1,3 +1,5 @@
+"""A post upgrade task script to update all RPM lockfiles based on container file updates."""
+
 import argparse
 import json
 import os
@@ -12,22 +14,22 @@ from yaml import safe_load
 
 @dataclass
 class Upgrade:
+    """Container class for the upgrades."""
+
     package_file: str
 
 
 type InputFileMap = dict[str, str]
 
 
-def find_rpm_input_files_in_repo():
-    """Get a map between container file"""
+def find_rpm_input_files_in_repo() -> InputFileMap:
+    """Get a map between container file."""
     input_file_map: InputFileMap = {}
 
     for path, _, files in Path.cwd().walk():
         for file in files:
             if file == "rpms.in.yaml":
-                input_file = (
-                    str(path / file).removeprefix(str(Path.cwd())).removeprefix("/")
-                )
+                input_file = str(path / file).removeprefix(str(Path.cwd())).removeprefix("/")
                 logger.debug("Found rpms.in.yaml in: {}", input_file)
 
                 with (Path(path) / file).open() as f:
@@ -37,19 +39,20 @@ def find_rpm_input_files_in_repo():
                     if containerfile is None:
                         # Find a sibling
                         logger.debug(
-                            "No context.containerfile provided, looking for siblings"
+                            "No context.containerfile provided, looking for siblings",
                         )
                         containerfile = Path(input_file).parent / "Dockerfile"
 
                         if not containerfile.exists():
                             logger.debug(
-                                "Sibling Dockerfile not found, trying Containerfile"
+                                "Sibling Dockerfile not found, trying Containerfile",
                             )
                             containerfile = Path(input_file).parent / "Containerfile"
 
                             if not containerfile.exists():
                                 logger.error(
-                                    "Neither Dockerfile nor Containerfile found while context.containerfile is not set"
+                                    "Neither Dockerfile nor Containerfile found"
+                                    " while context.containerfile is not set",
                                 )
                                 continue
                     else:
@@ -72,9 +75,7 @@ def find_rpm_input_files_in_repo():
 def read_upgrades_from_file(path: Path) -> list[Upgrade]:
     """Read the upgrade file and return the upgrades."""
     with Path(path).open() as f:
-        return [
-            Upgrade(package_file=upgrade["packageFile"]) for upgrade in json.load(f)
-        ]
+        return [Upgrade(package_file=upgrade["packageFile"]) for upgrade in json.load(f)]
 
 
 def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> bool:
@@ -103,8 +104,8 @@ def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> b
                 output_file,
             )
 
-            ret = subprocess.run(
-                ["rpm-lockfile-prototype", input_file, "--outfile", output_file],
+            ret = subprocess.run(  # noqa: S603
+                ["rpm-lockfile-prototype", input_file, "--outfile", output_file],  # noqa: S607
                 check=True,
             )
 

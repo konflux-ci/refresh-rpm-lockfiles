@@ -41,7 +41,7 @@ def test_update_lockfiles():
                     ],
                     check=True,
                 ),
-            ]
+            ],
         )
 
 
@@ -81,5 +81,5 @@ def test_update_one_fails():
                     ],
                     check=True,
                 ),
-            ]
+            ],
         )
