@@ -119,7 +119,7 @@ def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> b
     return any_failed
 
 
-def run() -> int:
+def run() -> int:  # pragma: no cover
     """Application entrypoint."""
     logger.remove()
     logger.add(
@@ -142,5 +142,5 @@ def run() -> int:
     return int(update_lockfiles(upgrades, input_file_map))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     run()

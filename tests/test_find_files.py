@@ -101,6 +101,31 @@ def test_find_rpm_input_files_containerfile_sibling_exists():
     assert result == {"Containerfile": "rpms.in.yaml"}
 
 
+def test_find_rpm_input_files_dockerfile_sibling_no_file():
+    """Uses Dockerfile as the containerfile when it exists next to rpms.in.yaml."""
+    walk_entries = [_make_walk_entry(TMP_PATH, ["rpms.in.yaml"])]
+
+    with (
+        patch("refresh_rpm_lockfiles.Path.cwd", return_value=TMP_PATH),
+        patch.object(
+            Path,
+            "walk",
+            return_value=iter(walk_entries),
+        ),
+        patch(
+            "refresh_rpm_lockfiles.Path.open",
+            mock_open(read_data=RPMS_IN_YAML_NO_CONTAINERFILE),
+        ),
+        patch(
+            "refresh_rpm_lockfiles.Path.exists",
+            side_effect=[False, False],
+        ),
+    ):
+        result = find_rpm_input_files_in_repo()
+
+    assert result == {}
+
+
 def test_find_rpm_input_files_dockerfile_configured():
     """Uses Dockerfile as the containerfile when it exists next to rpms.in.yaml."""
     walk_entries = [_make_walk_entry(TMP_PATH, ["rpms.in.yaml", "Dockerfile"])]
