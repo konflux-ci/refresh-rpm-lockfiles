@@ -36,6 +36,9 @@ def find_rpm_input_files_in_repo() -> InputFileMap:
                     data = safe_load(f)
                     containerfile = data.get("context", {}).get("containerfile", None)
 
+                    if isinstance(containerfile, dict):
+                        containerfile = containerfile["file"]
+
                     if containerfile is None:
                         # Find a sibling
                         logger.debug(
