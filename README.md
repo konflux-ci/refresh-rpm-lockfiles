@@ -15,7 +15,7 @@ for **all** Dockerfile or Containerfile updates.
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "github>konflux-ci/mintmaker-presets:group-python-requirements"
+    "github>konflux-ci/mintmaker-presets:refresh-rpm-lockfiles"
   ]
 }
 ```
