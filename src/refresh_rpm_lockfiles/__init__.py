@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from loguru import logger
 from yaml import safe_load
@@ -22,6 +22,20 @@ class Upgrade:
 type InputFileMap = dict[str, str]
 
 
+def resolve_relative_path(path: PurePath) -> PurePath:
+    """Resolve all relative specifiers (. and ..) within a PurePath."""
+    new_parts: list[str] = []
+
+    for part in path.parts:
+        if part == "..":
+            new_parts.pop()
+            continue
+
+        new_parts.append(part)
+
+    return PurePath(*new_parts)
+
+
 def find_rpm_input_files_in_repo() -> InputFileMap:
     """Get a map between container file."""
     input_file_map: InputFileMap = {}
@@ -30,7 +44,7 @@ def find_rpm_input_files_in_repo() -> InputFileMap:
         for file in files:
             if file == "rpms.in.yaml":
                 input_file = str(path / file).removeprefix(str(Path.cwd())).removeprefix("/")
-                logger.debug("Found rpms.in.yaml in: {}", input_file)
+                logger.debug("Found rpms.in.yaml in:  {}", input_file)
 
                 with (Path(path) / file).open() as f:
                     data = safe_load(f)
@@ -68,9 +82,12 @@ def find_rpm_input_files_in_repo() -> InputFileMap:
                             )
                             continue
 
-                    logger.debug("Input file detected: {}", containerfile)
+                    resolved_path = resolve_relative_path(PurePath(containerfile))
 
-                    input_file_map[str(containerfile)] = input_file
+                    logger.debug("Containerfile detected: {}", containerfile)
+                    logger.debug("Resolved path:          {}", resolved_path)
+
+                    input_file_map[str(resolved_path)] = input_file
 
     return input_file_map
 
@@ -83,8 +100,11 @@ def read_upgrades_from_file(path: Path) -> list[Upgrade]:
 
 def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> bool:
     """Call rpm-lockfile-prototype for each upgrade."""
-    logger.debug(str(upgrades))
-    logger.debug("Input file map: {}", input_file_map)
+    logger.debug("Found upgrades to files: {}", ", ".join([u.package_file for u in upgrades]))
+    logger.debug(
+        "Input file map: \n{}",
+        "\n".join([f"{k} -> {v}" for k, v in input_file_map.items()]),
+    )
 
     # If any of the upgrades fail, pass that information up,
     # but try to upgrade as many files as possible
