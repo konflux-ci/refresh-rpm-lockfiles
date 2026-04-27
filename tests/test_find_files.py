@@ -32,6 +32,14 @@ context:
     file: Containerfile
 """
 
+RPMS_IN_YAML_RELATIVE_PATH = """contentOrigin:
+  repofiles:
+    - ./ubi.repo
+packages: [cargo]
+context:
+  containerfile: ../../folder/dockerfiles/Containerfile
+"""
+
 
 def _make_walk_entry(directory: Path, files: list[str]):
     """Return a single os.walk-style tuple for use in Path.walk() mocks."""
@@ -199,3 +207,33 @@ def test_find_rpm_input_files_containerfile_dict_configured():
         result = find_rpm_input_files_in_repo()
 
     assert result == {"Containerfile": "rpms.in.yaml"}
+
+
+def test_find_rpm_input_files_relative_path():
+    """Uses Dockerfile as the containerfile when it exists in another directory."""
+    walk_entries = [
+        _make_walk_entry(TMP_PATH, []),
+        _make_walk_entry(TMP_PATH / "root", []),
+        _make_walk_entry(TMP_PATH / "root" / "folder" / "rpms", ["rpms.in.yaml"]),
+        _make_walk_entry(TMP_PATH / "root" / "folder" / "dockerfiles", ["Containerfile"]),
+    ]
+
+    with (
+        patch("refresh_rpm_lockfiles.Path.cwd", return_value=TMP_PATH),
+        patch.object(
+            Path,
+            "walk",
+            return_value=iter(walk_entries),
+        ),
+        patch(
+            "refresh_rpm_lockfiles.Path.open",
+            mock_open(read_data=RPMS_IN_YAML_RELATIVE_PATH),
+        ),
+        patch(
+            "refresh_rpm_lockfiles.Path.exists",
+            side_effect=[True],  # Containerfile exists, but not Dockerfile
+        ),
+    ):
+        result = find_rpm_input_files_in_repo()
+
+    assert result == {"root/folder/dockerfiles/Containerfile": "root/folder/rpms/rpms.in.yaml"}
