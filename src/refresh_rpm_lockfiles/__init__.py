@@ -28,6 +28,10 @@ def resolve_relative_path(path: PurePath) -> PurePath:
 
     for part in path.parts:
         if part == "..":
+            if not new_parts:
+                logger.warning("Cannot pop from empty list, path provided: {}", path)
+                return path
+
             new_parts.pop()
             continue
 

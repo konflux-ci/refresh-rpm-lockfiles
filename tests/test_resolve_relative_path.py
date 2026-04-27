@@ -18,6 +18,8 @@ from refresh_rpm_lockfiles import resolve_relative_path
         ("a/b/c/../../d", "a/d"),  # multiple double dots
         ("a/./b/../c", "a/c"),  # dot and double dot combined
         ("a", "a"),  # single component
+        (".", ""),
+        ("../../c", "../../c"),
     ],
 )
 def test_resolve_relative_path(input_path, expected):
