@@ -126,7 +126,7 @@ def run() -> int:  # pragma: no cover
         sys.stdout,
         format="{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level:8s}</level> | {message}",
         level=os.getenv("LOG_LEVEL", "DEBUG").upper(),
-        colorize=True,
+        colorize=False,
     )
 
     parser = argparse.ArgumentParser()
