@@ -18,6 +18,10 @@ class Upgrade:
 
     package_file: str
 
+    def __hash__(self) -> int:
+        """Produce the hash from the `package_file` attribute for deduplication."""
+        return hash(self.package_file)
+
 
 type InputFileMap = dict[str, str]
 
@@ -96,13 +100,13 @@ def find_rpm_input_files_in_repo() -> InputFileMap:
     return input_file_map
 
 
-def read_upgrades_from_file(path: Path) -> list[Upgrade]:
+def read_upgrades_from_file(path: Path) -> set[Upgrade]:
     """Read the upgrade file and return the upgrades."""
     with Path(path).open() as f:
-        return [Upgrade(package_file=upgrade["packageFile"]) for upgrade in json.load(f)]
+        return {Upgrade(package_file=upgrade["packageFile"]) for upgrade in json.load(f)}
 
 
-def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> bool:
+def update_lockfiles(upgrades: set[Upgrade], input_file_map: InputFileMap) -> bool:
     """Call rpm-lockfile-prototype for each upgrade."""
     logger.debug("Found upgrades to files: {}", ", ".join([u.package_file for u in upgrades]))
     logger.debug(
