@@ -35,10 +35,10 @@ def test_read_upgrades_from_file():
         "refresh_rpm_lockfiles.Path.open",
         mock_open(read_data=UPGRADES_JSON),
     ):
-        assert read_upgrades_from_file(Path("test.json")) == {
-            Upgrade(package_file="subfolder/Containerfile"),
+        assert read_upgrades_from_file(Path("test.json")) == [
             Upgrade(package_file="Dockerfile"),
-        }
+            Upgrade(package_file="subfolder/Containerfile"),
+        ]
 
 
 def test_read_upgrades_from_file_multiple_stages():
@@ -46,7 +46,7 @@ def test_read_upgrades_from_file_multiple_stages():
         "refresh_rpm_lockfiles.Path.open",
         mock_open(read_data=UPGRADES_JSON_MULTIPLE_STAGES),
     ):
-        assert read_upgrades_from_file(Path("test.json")) == {
+        assert read_upgrades_from_file(Path("test.json")) == [
             Upgrade(package_file="Dockerfile"),
             Upgrade(package_file="subfolder/Containerfile"),
-        }
+        ]

@@ -6,10 +6,10 @@ from refresh_rpm_lockfiles import Upgrade, update_lockfiles
 
 
 def test_update_lockfiles():
-    upgrades = {
+    upgrades = [
         Upgrade(package_file="subfolder/Containerfile"),
         Upgrade(package_file="Dockerfile"),
-    }
+    ]
 
     input_file_map = {
         "subfolder/Containerfile": "subfolder/rpms.in.yaml",
@@ -46,10 +46,10 @@ def test_update_lockfiles():
 
 
 def test_update_one_fails():
-    upgrades = {
+    upgrades = [
         Upgrade(package_file="subfolder/Containerfile"),
         Upgrade(package_file="Dockerfile"),
-    }
+    ]
 
     input_file_map = {
         "subfolder/Containerfile": "subfolder/rpms.in.yaml",
