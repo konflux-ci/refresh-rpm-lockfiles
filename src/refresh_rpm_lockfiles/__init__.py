@@ -7,6 +7,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePath
+from typing import Self
 
 from loguru import logger
 from yaml import safe_load
@@ -17,6 +18,14 @@ class Upgrade:
     """Container class for the upgrades."""
 
     package_file: str
+
+    def __hash__(self) -> int:
+        """Produce the hash from the `package_file` attribute for deduplication."""
+        return hash(self.package_file)
+
+    def __lt__(self, other: Self) -> bool:
+        """Compare the `package_file` to be able to sort Upgrades."""
+        return self.package_file < other.package_file
 
 
 type InputFileMap = dict[str, str]
@@ -99,7 +108,7 @@ def find_rpm_input_files_in_repo() -> InputFileMap:
 def read_upgrades_from_file(path: Path) -> list[Upgrade]:
     """Read the upgrade file and return the upgrades."""
     with Path(path).open() as f:
-        return [Upgrade(package_file=upgrade["packageFile"]) for upgrade in json.load(f)]
+        return sorted({Upgrade(package_file=upgrade["packageFile"]) for upgrade in json.load(f)})
 
 
 def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> bool:
