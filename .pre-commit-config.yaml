@@ -14,3 +14,12 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: agents-md-max-lines
+        name: AGENTS.md at most 300 lines
+        entry: bash -c 'lines=$(wc -l < AGENTS.md); if [ "$lines" -gt 300 ]; then echo "AGENTS.md has $lines lines (max 300)"; exit 1; fi'
+        language: system
+        files: ^AGENTS\.md$
+        pass_filenames: false
