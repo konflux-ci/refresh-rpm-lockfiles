@@ -12,8 +12,8 @@ def test_update_lockfiles():
     ]
 
     input_file_map = {
-        "subfolder/Containerfile": "subfolder/rpms.in.yaml",
-        "Dockerfile": "rpms.in.yaml",
+        "subfolder/Containerfile": ["subfolder/rpms.in.yaml"],
+        "Dockerfile": ["rpms.in.yaml"],
     }
 
     with patch(
@@ -52,8 +52,8 @@ def test_update_one_fails():
     ]
 
     input_file_map = {
-        "subfolder/Containerfile": "subfolder/rpms.in.yaml",
-        "Dockerfile": "rpms.in.yaml",
+        "subfolder/Containerfile": ["subfolder/rpms.in.yaml"],
+        "Dockerfile": ["rpms.in.yaml"],
     }
 
     with patch(
