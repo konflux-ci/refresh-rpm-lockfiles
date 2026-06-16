@@ -30,7 +30,7 @@ def test_update_lockfiles():
                         "--outfile",
                         Path("subfolder/rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
                 call(
                     [
@@ -39,7 +39,7 @@ def test_update_lockfiles():
                         "--outfile",
                         Path("rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
             ],
         )
@@ -70,7 +70,7 @@ def test_update_one_fails():
                         "--outfile",
                         Path("subfolder/rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
                 call(
                     [
@@ -79,7 +79,7 @@ def test_update_one_fails():
                         "--outfile",
                         Path("rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
             ],
         )

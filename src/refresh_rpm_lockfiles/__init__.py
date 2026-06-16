@@ -143,7 +143,7 @@ def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> b
 
                 ret = subprocess.run(  # noqa: S603
                     ["rpm-lockfile-prototype", input_file, "--outfile", output_file],  # noqa: S607
-                    check=True,
+                    check=False,
                 )
 
                 if ret.returncode:
