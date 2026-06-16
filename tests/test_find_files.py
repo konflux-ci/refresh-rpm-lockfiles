@@ -81,7 +81,7 @@ def test_find_rpm_input_files_dockerfile_sibling_exists():
     ):
         result = find_rpm_input_files_in_repo()
 
-    assert result == {"Dockerfile": "rpms.in.yaml"}
+    assert result == {"Dockerfile": ["rpms.in.yaml"]}
 
 
 def test_find_rpm_input_files_containerfile_sibling_exists():
@@ -106,7 +106,7 @@ def test_find_rpm_input_files_containerfile_sibling_exists():
     ):
         result = find_rpm_input_files_in_repo()
 
-    assert result == {"Containerfile": "rpms.in.yaml"}
+    assert result == {"Containerfile": ["rpms.in.yaml"]}
 
 
 def test_find_rpm_input_files_dockerfile_sibling_no_file():
@@ -181,7 +181,7 @@ def test_find_rpm_input_files_containerfile_configured():
     ):
         result = find_rpm_input_files_in_repo()
 
-    assert result == {"Containerfile": "rpms.in.yaml"}
+    assert result == {"Containerfile": ["rpms.in.yaml"]}
 
 
 def test_find_rpm_input_files_containerfile_dict_configured():
@@ -206,7 +206,7 @@ def test_find_rpm_input_files_containerfile_dict_configured():
     ):
         result = find_rpm_input_files_in_repo()
 
-    assert result == {"Containerfile": "rpms.in.yaml"}
+    assert result == {"Containerfile": ["rpms.in.yaml"]}
 
 
 def test_find_rpm_input_files_relative_path():
@@ -236,4 +236,39 @@ def test_find_rpm_input_files_relative_path():
     ):
         result = find_rpm_input_files_in_repo()
 
-    assert result == {"root/folder/dockerfiles/Containerfile": "root/folder/rpms/rpms.in.yaml"}
+    assert result == {"root/folder/dockerfiles/Containerfile": ["root/folder/rpms/rpms.in.yaml"]}
+
+
+def test_multiple_rpm_input_files_map_to_one_dockerfile():
+    walk_entries = [
+        _make_walk_entry(TMP_PATH, []),
+        _make_walk_entry(TMP_PATH / "root", []),
+        _make_walk_entry(TMP_PATH / "root" / "folder" / "rpms", ["rpms.in.yaml"]),
+        _make_walk_entry(TMP_PATH / "root" / "folder" / "rpms-other", ["rpms.in.yaml"]),
+        _make_walk_entry(TMP_PATH / "root" / "folder" / "dockerfiles", ["Containerfile"]),
+    ]
+
+    with (
+        patch("refresh_rpm_lockfiles.Path.cwd", return_value=TMP_PATH),
+        patch.object(
+            Path,
+            "walk",
+            return_value=iter(walk_entries),
+        ),
+        patch(
+            "refresh_rpm_lockfiles.Path.open",
+            mock_open(read_data=RPMS_IN_YAML_RELATIVE_PATH),
+        ),
+        patch(
+            "refresh_rpm_lockfiles.Path.exists",
+            side_effect=[True, True],  # Containerfile exists, but not Dockerfile
+        ),
+    ):
+        result = find_rpm_input_files_in_repo()
+
+    assert result == {
+        "root/folder/dockerfiles/Containerfile": [
+            "root/folder/rpms/rpms.in.yaml",
+            "root/folder/rpms-other/rpms.in.yaml",
+        ],
+    }

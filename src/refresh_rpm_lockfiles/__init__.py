@@ -28,7 +28,7 @@ class Upgrade:
         return self.package_file < other.package_file
 
 
-type InputFileMap = dict[str, str]
+type InputFileMap = dict[str, list[str]]
 
 
 def resolve_relative_path(path: PurePath) -> PurePath:
@@ -100,7 +100,8 @@ def find_rpm_input_files_in_repo() -> InputFileMap:
                     logger.debug("Containerfile detected: {}", containerfile)
                     logger.debug("Resolved path:          {}", resolved_path)
 
-                    input_file_map[str(resolved_path)] = input_file
+                    input_file_map.setdefault(str(resolved_path), [])
+                    input_file_map[str(resolved_path)].append(input_file)
 
     return input_file_map
 
@@ -116,7 +117,7 @@ def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> b
     logger.debug("Found upgrades to files: {}", ", ".join([u.package_file for u in upgrades]))
     logger.debug(
         "Input file map: \n{}",
-        "\n".join([f"{k} -> {v}" for k, v in input_file_map.items()]),
+        "\n".join([f"{k} -> {', '.join(v)}" for k, v in input_file_map.items()]),
     )
 
     # If any of the upgrades fail, pass that information up,
@@ -125,29 +126,34 @@ def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> b
 
     for upgrade in upgrades:
         if upgrade.package_file in input_file_map:
-            # The opposite should not happen, i.e. if a file is in the repo,
-            # it may have an upgrade, but there shouldn't be an upgrade to a file
-            # that's not in the repo.
-            input_file = input_file_map[upgrade.package_file]
+            for input_file in input_file_map[upgrade.package_file]:
+                # The opposite should not happen, i.e. if a file is in the repo,
+                # it may have an upgrade, but there shouldn't be an upgrade to a file
+                # that's not in the repo.
 
-            # Output path needs to be specified using the same relative directory
-            output_file = Path(input_file).parent / "rpms.lock.yaml"
+                # Output path needs to be specified using the same relative directory
+                output_file = Path(input_file).parent / "rpms.lock.yaml"
 
-            logger.info("Running rpm-lockfile-prototype for {}", input_file)
-            logger.debug(
-                "Executing `rpm-lockfile-prototype {} --outfile {}`",
-                input_file,
-                output_file,
+                logger.info("Running rpm-lockfile-prototype for {}", input_file)
+                logger.debug(
+                    "Executing `rpm-lockfile-prototype {} --outfile {}`",
+                    input_file,
+                    output_file,
+                )
+
+                ret = subprocess.run(  # noqa: S603
+                    ["rpm-lockfile-prototype", input_file, "--outfile", output_file],  # noqa: S607
+                    check=False,
+                )
+
+                if ret.returncode:
+                    logger.error("Execution failed for {}", input_file)
+                    any_failed = True
+        else:
+            logger.warning(  # pragma: no cover
+                "Upgrade found for {}, but no such file was found in the input file map",
+                upgrade.package_file,
             )
-
-            ret = subprocess.run(  # noqa: S603
-                ["rpm-lockfile-prototype", input_file, "--outfile", output_file],  # noqa: S607
-                check=True,
-            )
-
-            if ret.returncode:
-                logger.error("Execution failed for {}", input_file)
-                any_failed = True
 
     return any_failed
 

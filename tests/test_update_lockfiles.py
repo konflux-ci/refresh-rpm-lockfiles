@@ -12,8 +12,8 @@ def test_update_lockfiles():
     ]
 
     input_file_map = {
-        "subfolder/Containerfile": "subfolder/rpms.in.yaml",
-        "Dockerfile": "rpms.in.yaml",
+        "subfolder/Containerfile": ["subfolder/rpms.in.yaml"],
+        "Dockerfile": ["rpms.in.yaml"],
     }
 
     with patch(
@@ -30,7 +30,7 @@ def test_update_lockfiles():
                         "--outfile",
                         Path("subfolder/rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
                 call(
                     [
@@ -39,7 +39,7 @@ def test_update_lockfiles():
                         "--outfile",
                         Path("rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
             ],
         )
@@ -52,8 +52,8 @@ def test_update_one_fails():
     ]
 
     input_file_map = {
-        "subfolder/Containerfile": "subfolder/rpms.in.yaml",
-        "Dockerfile": "rpms.in.yaml",
+        "subfolder/Containerfile": ["subfolder/rpms.in.yaml"],
+        "Dockerfile": ["rpms.in.yaml"],
     }
 
     with patch(
@@ -70,7 +70,7 @@ def test_update_one_fails():
                         "--outfile",
                         Path("subfolder/rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
                 call(
                     [
@@ -79,7 +79,7 @@ def test_update_one_fails():
                         "--outfile",
                         Path("rpms.lock.yaml"),
                     ],
-                    check=True,
+                    check=False,
                 ),
             ],
         )
