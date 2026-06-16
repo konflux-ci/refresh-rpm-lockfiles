@@ -149,6 +149,11 @@ def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> b
                 if ret.returncode:
                     logger.error("Execution failed for {}", input_file)
                     any_failed = True
+        else:
+            logger.warning(  # pragma: no cover
+                "Upgrade found for {}, but no such file was found in the input file map",
+                upgrade.package_file,
+            )
 
     return any_failed
 
