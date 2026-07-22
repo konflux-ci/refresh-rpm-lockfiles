@@ -92,5 +92,5 @@ The data file is JSON: `[{"packageFile": "path/to/Dockerfile"}, ...]`. Use MintM
 ## Security considerations
 
 - The CLI runs `rpm-lockfile-prototype` via `subprocess.run` with fixed arguments derived from repo paths. Do not pass untrusted user input into command construction.
-- `S603`/`S607` noqa comments are intentional (known executable name).
+- `S603`/`S607` noqa comments are intentional (known executable name). Prefer fixing new lint findings over adding `noqa`.
 - When changing subprocess or path-resolution logic, consider path traversal and unexpected `..` segments.
