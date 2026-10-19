@@ -20,7 +20,7 @@ def test_update_lockfiles():
         "refresh_rpm_lockfiles.subprocess.run",
         side_effect=[CompletedProcess("", 0), CompletedProcess("", 0)],
     ) as subprocess_run_mock:
-        assert update_lockfiles(upgrades, input_file_map) == 0
+        assert update_lockfiles(upgrades, input_file_map) is False
         subprocess_run_mock.assert_has_calls(
             [
                 call(
@@ -60,7 +60,7 @@ def test_update_one_fails():
         "refresh_rpm_lockfiles.subprocess.run",
         side_effect=[CompletedProcess("", 1), CompletedProcess("", 0)],
     ) as subprocess_run_mock:
-        assert update_lockfiles(upgrades, input_file_map) == 1
+        assert update_lockfiles(upgrades, input_file_map) is True
         subprocess_run_mock.assert_has_calls(
             [
                 call(
