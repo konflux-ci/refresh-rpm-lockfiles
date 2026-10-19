@@ -1,16 +1,20 @@
 """A post upgrade task script to update all RPM lockfiles based on container file updates."""
 
 import argparse
+import contextlib
 import json
 import os
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import Self
 
 from loguru import logger
 from yaml import safe_load
+
+RPM_LOCKFILE_PROTOTYPE_DNF_CACHE = "RPM_LOCKFILE_PROTOTYPE_DNF_CACHE"
 
 
 @dataclass
@@ -113,7 +117,14 @@ def read_upgrades_from_file(path: Path) -> list[Upgrade]:
 
 
 def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> bool:
-    """Call rpm-lockfile-prototype for each upgrade."""
+    """Call rpm-lockfile-prototype for each upgrade.
+
+    If RPM_LOCKFILE_PROTOTYPE_DNF_CACHE is not already set in the environment
+    and there is at least one matching upgrade to process, a temporary
+    directory is created once and used as the DNF cache for all invocations
+    in this run, then removed afterwards (cleanup errors are ignored). If it
+    is already set, it is passed through unchanged.
+    """
     logger.debug("Found upgrades to files: {}", ", ".join([u.package_file for u in upgrades]))
     logger.debug(
         "Input file map: \n{}",
@@ -124,36 +135,51 @@ def update_lockfiles(upgrades: list[Upgrade], input_file_map: InputFileMap) -> b
     # but try to upgrade as many files as possible
     any_failed = False
 
-    for upgrade in upgrades:
-        if upgrade.package_file in input_file_map:
-            for input_file in input_file_map[upgrade.package_file]:
-                # The opposite should not happen, i.e. if a file is in the repo,
-                # it may have an upgrade, but there shouldn't be an upgrade to a file
-                # that's not in the repo.
+    has_matching_upgrades = any(upgrade.package_file in input_file_map for upgrade in upgrades)
 
-                # Output path needs to be specified using the same relative directory
-                output_file = Path(input_file).parent / "rpms.lock.yaml"
+    env = os.environ.copy()
+    dnf_cache_dir = (
+        contextlib.nullcontext(None)
+        if not has_matching_upgrades or RPM_LOCKFILE_PROTOTYPE_DNF_CACHE in env
+        else tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+    )
 
-                logger.info("Running rpm-lockfile-prototype for {}", input_file)
-                logger.debug(
-                    "Executing `rpm-lockfile-prototype {} --outfile {}`",
-                    input_file,
-                    output_file,
+    with dnf_cache_dir as created_dnf_cache_dir:
+        if created_dnf_cache_dir is not None:
+            logger.debug("Created temporary DNF cache directory: {}", created_dnf_cache_dir)
+            env[RPM_LOCKFILE_PROTOTYPE_DNF_CACHE] = created_dnf_cache_dir
+
+        for upgrade in upgrades:
+            if upgrade.package_file in input_file_map:
+                for input_file in input_file_map[upgrade.package_file]:
+                    # The opposite should not happen, i.e. if a file is in the repo,
+                    # it may have an upgrade, but there shouldn't be an upgrade to a file
+                    # that's not in the repo.
+
+                    # Output path needs to be specified using the same relative directory
+                    output_file = Path(input_file).parent / "rpms.lock.yaml"
+
+                    logger.info("Running rpm-lockfile-prototype for {}", input_file)
+                    logger.debug(
+                        "Executing `rpm-lockfile-prototype {} --outfile {}`",
+                        input_file,
+                        output_file,
+                    )
+
+                    ret = subprocess.run(  # noqa: S603
+                        ["rpm-lockfile-prototype", input_file, "--outfile", output_file],  # noqa: S607
+                        env=env,
+                        check=False,
+                    )
+
+                    if ret.returncode:
+                        logger.error("Execution failed for {}", input_file)
+                        any_failed = True
+            else:
+                logger.warning(  # pragma: no cover
+                    "Upgrade found for {}, but no such file was found in the input file map",
+                    upgrade.package_file,
                 )
-
-                ret = subprocess.run(  # noqa: S603
-                    ["rpm-lockfile-prototype", input_file, "--outfile", output_file],  # noqa: S607
-                    check=False,
-                )
-
-                if ret.returncode:
-                    logger.error("Execution failed for {}", input_file)
-                    any_failed = True
-        else:
-            logger.warning(  # pragma: no cover
-                "Upgrade found for {}, but no such file was found in the input file map",
-                upgrade.package_file,
-            )
 
     return any_failed
 
